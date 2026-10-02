@@ -47,6 +47,7 @@ export interface Settings {
   antialias: boolean
   hud: boolean
   showFps: boolean
+  fullscreen: boolean
   countdown: number
 }
 
@@ -99,6 +100,7 @@ export const DEFAULT_SETTINGS: Settings = {
   antialias: true,
   hud: true,
   showFps: false,
+  fullscreen: true,
   countdown: 3,
 }
 
