@@ -28,6 +28,16 @@ lưu bảng vào `data/scores.json` (đổi bằng `PORT`, `DATA`). Mở `dist/i
 Tên là của trình duyệt đặt nó trước (giữ bằng một mã bí mật trong localStorage, có trong file sao lưu).
 Chưa chống gian lận và chưa giới hạn tần suất gọi.
 
+## Đưa lên mạng
+
+Chạy trên **Vercel**. `vercel.json` bắt Vercel chạy test trước khi build, test lỗi thì không deploy.
+
+- Deploy thẳng từ máy: `npx vercel --prod` (lần đầu sẽ hỏi đăng nhập và tên dự án).
+- Hoặc nối repo GitHub: vercel.com → Add New → Project → chọn repo. Từ đó mỗi lần push lên
+  `main` là tự deploy, nhánh khác có link xem thử riêng.
+
+Bản build chỉ là một file tĩnh, dữ liệu người chơi nằm trong trình duyệt của từng người, không cần server.
+
 ## Có gì
 
 - **25 bài**: Gridshot, Sixshot, Spidershot, Microshot, Headshot Line, Sniper, 360 Flick,

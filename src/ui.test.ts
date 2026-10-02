@@ -239,3 +239,17 @@ describe('thống kê', () => {
     expect(app.querySelector('table')!.textContent).toContain('Strafetrack')
   })
 })
+
+describe('máy không có chuột', () => {
+  it('báo cần chuột trên màn cảm ứng, không báo khi có chuột', async () => {
+    const mm = (fine: boolean) => vi.fn(() => ({ matches: fine }) as unknown as MediaQueryList)
+    window.matchMedia = mm(false)
+    await goto('#stats')
+    await goto('#home')
+    expect(app.querySelector('.notice')?.textContent).toContain('cần chuột')
+    window.matchMedia = mm(true)
+    await goto('#stats')
+    await goto('#home')
+    expect(app.querySelector('.notice')).toBeNull()
+  })
+})
