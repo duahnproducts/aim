@@ -47,8 +47,15 @@ describe('Redis', () => {
     expect((await handler(fakeUpstash({ GET: 'khac' }).db)(req({ name: 'An', token: 'a'.repeat(32) }))).status).toBe(409)
     const down = redisDb('https://kv.test', 's', (async () => new Response('', { status: 500 })) as unknown as typeof fetch)
     expect((await handler(down)(req(undefined, '?task=gridshot'))).status).toBe(503)
+    // Không dựa vào biến môi trường của máy đang chạy test: build trên Vercel có sẵn biến Upstash thật.
     const { GET } = await import('./ranking')
-    expect((await GET(req(undefined, '?task=gridshot'))).status).toBe(503)
+    const env = process.env
+    process.env = {}
+    try {
+      expect((await GET(req(undefined, '?task=gridshot'))).status).toBe(503)
+    } finally {
+      process.env = env
+    }
   })
 })
 
