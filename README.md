@@ -46,8 +46,7 @@ Bản build chỉ là một file tĩnh, dữ liệu người chơi nằm trong t
   (kèm bản Precision và Adaptive tự chỉnh độ khó).
 - **Hạng 8 bậc** cho từng bài (Sắt → Thách Đấu) và **hồ sơ 6 kỹ năng**: flick, tracking,
   chuyển mục tiêu, tốc độ, chính xác, phản xạ.
-- **Bảng xếp hạng** mỗi bài: online theo tên người chơi, và 10 lượt cao nhất của bạn đứng xen giữa
-  người chơi ảo ở mốc từng hạng.
+- **Bảng xếp hạng online** của từng bài, theo tên người chơi, ngay trong trang chi tiết bài.
 - **Phân tích sau mỗi lượt**: phân bố phát bắn, vượt quá / chưa tới, tốc độ theo vùng màn hình,
   phong độ theo thời gian, lời khuyên.
 - **Lộ trình** (playlist) dựng sẵn và tự tạo, có bài đánh giá kỹ năng.

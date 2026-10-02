@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { RunResult } from './game'
-import { bestMultiplier, dailyTask, leaderboard, profile, rankIndex, ranksFor, rating, streak, tips } from './stats'
+import { bestMultiplier, dailyTask, profile, rankIndex, rating, streak, tips } from './stats'
 import { BUILTIN } from './tasks'
 
 const run = (p: Partial<RunResult>): RunResult => ({
@@ -29,25 +29,6 @@ describe('hạng', () => {
     expect(rankIndex(100)).toBe(0)
     expect(rankIndex(450)).toBe(3)
     expect(rankIndex(900)).toBe(7)
-  })
-})
-
-describe('bảng xếp hạng', () => {
-  it('xếp 10 lượt cao nhất của bạn xen giữa 8 người chơi ảo, hoà điểm thì bạn đứng trên', () => {
-    const task = BUILTIN.find((t) => t.id === 'gridshot')!
-    const T = ranksFor(task.params)
-    const runs = [
-      ...Array.from({ length: 12 }, (_, i) => run({ score: i })),
-      run({ score: T[3] }),
-      run({ task: 'sixshot', score: 1e9 }),
-    ]
-    const board = leaderboard(runs, task)
-    expect(board).toHaveLength(18)
-    expect(board.map((e) => e.score)).toEqual([...board.map((e) => e.score)].sort((a, b) => b - a))
-    const i = board.findIndex((e) => e.run?.score === T[3])
-    expect(board[i]).toMatchObject({ rank: 3 })
-    expect(board[i + 1]).toEqual({ score: T[3], rank: 3 })
-    expect(board.filter((e) => e.run).map((e) => e.score).slice(-1)).toEqual([3])
   })
 })
 

@@ -184,14 +184,14 @@ describe('tên người chơi', () => {
   })
 })
 
-describe('xếp hạng', () => {
+describe('bảng xếp hạng trong trang bài', () => {
   it('gửi kỷ lục lên máy chủ và hiện bảng online, tô dòng của mình', async () => {
     const task = BUILTIN.find((t) => t.id === 'gridshot')!
     recordRun(task, { ...new Game(task.params, 1).result(task.id, 60), score: 12345 }, [])
     expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)).toMatchObject({ ...me, task: 'gridshot', score: 12345 })
     const top = Array.from({ length: 50 }, (_, i) => ({ name: `P${i}`, score: 99999 - i, date: 0 }))
     fetchMock.mockImplementation(() => json({ top, total: 80, me: { name: 'Tester', score: 12345, date: 0, rank: 77 } }))
-    await goto('#ranking/gridshot')
+    await goto('#task/gridshot')
     await tick()
     const online = app.querySelector('#online')!
     expect(online.textContent).toContain('#77 / 80')
@@ -200,31 +200,17 @@ describe('xếp hạng', () => {
   })
 
   it('không có máy chủ thì báo, bài tự tạo thì không gửi', async () => {
-    await goto('#ranking/gridshot')
+    await goto('#task/gridshot')
     await tick()
     expect(app.querySelector('#online')!.textContent).toContain('Không kết nối được')
     const task = { ...BUILTIN[0], id: 'c-x', custom: true }
     fetchMock.mockClear()
     recordRun(task, new Game(task.params, 1).result(task.id, 60), [])
     expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  it('hiện lượt của bạn trên bảng cùng người chơi ảo, đổi bài bằng ô chọn', async () => {
-    await goto('#ranking/gridshot')
-    expect(app.querySelectorAll('tbody tr')).toHaveLength(8)
-    expect(text()).toContain('Bạn chưa chơi bài này')
-    const task = BUILTIN.find((t) => t.id === 'gridshot')!
-    const g = new Game(task.params, 1)
-    recordRun(task, g.result(task.id, 60), [])
-    await goto('#ranking/gridshot')
-    expect(app.querySelectorAll('tbody tr')).toHaveLength(9)
-    expect(app.querySelector('tr.hl')!.textContent).toContain('Bạn')
-    expect(text()).toContain('trên 0/8 người chơi ảo')
-    const sel = app.querySelector<HTMLSelectElement>('#rk-task')!
-    sel.value = 'sixshot'
-    sel.dispatchEvent(new Event('change'))
-    await tick()
-    expect(location.hash).toBe('#ranking/sixshot')
+    localStorage.setItem('tn.custom', JSON.stringify([task]))
+    await goto('#task/c-x')
+    expect(app.querySelector('#online')!.textContent).toContain('Bài tự tạo không có')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 

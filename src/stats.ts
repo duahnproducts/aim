@@ -51,23 +51,6 @@ export function best(runs: RunResult[], task: string): number | null {
   return own.length ? Math.max(...own.map((r) => r.score)) : null
 }
 
-export interface Entry {
-  score: number
-  rank: number // bậc hạng, -1 là Tập sự
-  run?: RunResult // có nghĩa là lượt của người chơi, không có là người chơi ảo
-}
-
-/** Bảng xếp hạng một bài: n lượt cao nhất của bạn xen giữa 8 người chơi ảo đứng ở mốc từng hạng. */
-export function leaderboard(runs: RunResult[], task: Task, n = 10): Entry[] {
-  const T = ranksFor(task.params)
-  const mine = runsOf(runs, task.id)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, n)
-    .map((run) => ({ score: run.score, rank: rankIndex(rating(run.score, T)), run }))
-  // sort ổn định: hoà điểm thì lượt của bạn đứng trên người chơi ảo, khớp với "đạt mốc là lên hạng"
-  return [...mine, ...T.map((score, rank) => ({ score, rank }))].sort((a, b) => b.score - a.score)
-}
-
 /** Điểm cao nhất trong n lượt gần nhất: hồ sơ kỹ năng phản ánh phong độ hiện tại. */
 export function recentBest(runs: RunResult[], task: string, n = 10): number | null {
   const own = runsOf(runs, task).slice(-n)
