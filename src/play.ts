@@ -378,7 +378,7 @@ export function play(opts: PlayOptions) {
   ]
     .map((label) => `<div><b></b><span>${label}</span></div>`)
     .join('')
-  view.setup(st)
+  view.setup(st, opts.task.params)
   drawCrosshair(xh, st)
   hit.className = ''
   flash.className = ''

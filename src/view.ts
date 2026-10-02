@@ -18,12 +18,23 @@ import {
   SRGBColorSpace,
   WebGLRenderer,
 } from 'three'
-import type { Game, Target } from './game'
+import type { Game, Target, TaskParams } from './game'
 import { vFov } from './sens'
 import type { Settings } from './store'
 
 const D2R = Math.PI / 180
-const ROOM = { w: 70, h: 30, d: 70, floor: -2, cell: 2 }
+const CELL = 2
+
+/** Phòng tối thiểu 70×30×70, sàn dưới mắt 2 m; nới ra đủ chứa mọi chỗ mục tiêu của bài có thể tới,
+ *  để không quả nào chìm vào sàn hay tường (mục tiêu luôn nằm trong ±spreadY và xa tối đa distance + jitter). */
+export function roomFor(p: TaskParams) {
+  const reach = p.distance + p.distanceJitter
+  const r = p.radius * (1 + p.sizeJitter) * (p.adaptive === 'size' ? 1.6 : 1) + p.height / 2
+  const y = reach * Math.sin(Math.min(90, p.spreadY) * D2R) + r + 0.5
+  const half = Math.max(35, reach + r + 1)
+  const floor = Math.min(-2, -y)
+  return { w: half * 2, d: half * 2, h: Math.max(30, y - floor), floor }
+}
 
 function gridTexture(wall: string, grid: string, rx: number, ry: number): CanvasTexture {
   const c = document.createElement('canvas')
@@ -92,12 +103,11 @@ export class View {
     const sun = new DirectionalLight(0xffffff, 1.6)
     sun.position.set(5, 12, 6)
     this.scene.add(sun)
-    this.room = new Mesh(new BoxGeometry(ROOM.w, ROOM.h, ROOM.d))
-    this.room.position.y = ROOM.floor + ROOM.h / 2
+    this.room = new Mesh()
     this.scene.add(this.room)
   }
 
-  setup(s: Settings) {
+  setup(s: Settings, p: TaskParams) {
     this.settings = s
     this.mats.normal.color.set(s.targetColor)
     this.mats.normal.emissive.set(s.targetColor)
@@ -112,7 +122,11 @@ export class View {
       ;(m as MeshBasicMaterial).map?.dispose()
       m.dispose()
     }
-    const { w, h, d, cell } = ROOM
+    const { w, h, d, floor: y0 } = roomFor(p)
+    const cell = CELL
+    this.room.geometry.dispose()
+    this.room.geometry = new BoxGeometry(w, h, d)
+    this.room.position.y = y0 + h / 2
     const wall = (rx: number, ry: number) =>
       new MeshBasicMaterial({ map: gridTexture(s.wallColor, s.gridColor, rx / cell, ry / cell), side: BackSide })
     const floor = new MeshBasicMaterial({ map: gridTexture(s.floorColor, s.gridColor, w / cell, d / cell), side: BackSide })
