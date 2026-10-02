@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { handler, redisDb } from './ranking'
+import { handler, redisDb, upstashEnv } from './ranking'
 
 // Upstash giả: trả lời theo tên lệnh, ghi lại các lệnh đã nhận.
 function fakeUpstash(answers: Record<string, unknown>) {
@@ -49,5 +49,16 @@ describe('Redis', () => {
     expect((await handler(down)(req(undefined, '?task=gridshot'))).status).toBe(503)
     const { GET } = await import('./ranking')
     expect((await GET(req(undefined, '?task=gridshot'))).status).toBe(503)
+  })
+})
+
+describe('biến môi trường', () => {
+  it('nhận mọi tiền tố Vercel đặt cho Upstash, báo riêng khi chỉ có Redis TCP', () => {
+    const c = { url: 'https://u', token: 't' }
+    expect(upstashEnv({ KV_REST_API_URL: 'https://u', KV_REST_API_TOKEN: 't', KV_URL: 'rediss://x' })).toEqual(c)
+    expect(upstashEnv({ STORAGE_REST_API_URL: 'https://u', STORAGE_REST_API_TOKEN: 't' })).toEqual(c)
+    expect(upstashEnv({ UPSTASH_REDIS_REST_URL: 'https://u', UPSTASH_REDIS_REST_TOKEN: 't' })).toEqual(c)
+    expect(upstashEnv({ REDIS_URL: 'redis://x' })).toBe('tcp-only')
+    expect(upstashEnv({ PATH: '/bin' })).toBeNull()
   })
 })

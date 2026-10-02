@@ -132,11 +132,25 @@ export function redisDb(url: string, token: string, f: typeof fetch = fetch): Db
   }
 }
 
+/**
+ * Tìm biến REST của Upstash. Vercel đặt tên theo tiền tố chọn lúc nối (mặc định KV_REST_API_URL,
+ * đổi tiền tố thành X thì là X_REST_API_URL); tích hợp Upstash cũ dùng UPSTASH_REDIS_REST_URL.
+ */
+export function upstashEnv(env: Record<string, string | undefined>): { url: string; token: string } | 'tcp-only' | null {
+  for (const [k, url] of Object.entries(env)) {
+    const m = /^(.*)_REST(?:_API)?_URL$/.exec(k)
+    const token = m && (env[`${m[1]}_REST_API_TOKEN`] ?? env[`${m[1]}_REST_TOKEN`])
+    if (url && token) return { url, token }
+  }
+  // Có Redis nhưng chỉ có địa chỉ TCP (ví dụ Redis Cloud): hàm này không gọi được, cần Upstash.
+  return Object.keys(env).some((k) => /REDIS_URL$|^KV_URL$/.test(k)) ? 'tcp-only' : null
+}
+
 /** Hàm Vercel. Chưa nối Upstash thì trả 503 để app báo "không kết nối được". */
 async function vercel(req: Request): Promise<Response> {
-  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return Response.json({ error: 'storage not configured' }, { status: 503 })
-  return handler(redisDb(url, token))(req)
+  const cfg = upstashEnv(process.env)
+  if (cfg === 'tcp-only') return Response.json({ error: 'redis without REST: connect Upstash for Redis' }, { status: 503 })
+  if (!cfg) return Response.json({ error: 'storage not configured' }, { status: 503 })
+  return handler(redisDb(cfg.url, cfg.token))(req)
 }
 export { vercel as GET, vercel as POST }
