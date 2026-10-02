@@ -16,8 +16,8 @@ const start = async () => {
   base = `http://localhost:${(srv.address() as AddressInfo).port}`
 }
 const stop = () => new Promise((r) => srv.close(r))
-const post = (path: string, body: unknown) =>
-  fetch(`${base}/api/${path}`, { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) })
+const post = (body: unknown) =>
+  fetch(`${base}/api/ranking`, { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) })
 const an = { name: 'An', token: 'a'.repeat(32) }
 const binh = { name: 'Bình', token: 'b'.repeat(32) }
 
@@ -29,39 +29,39 @@ afterAll(async () => {
 
 describe('máy chủ xếp hạng', () => {
   it('giữ tên cho người đặt trước, không phân biệt hoa thường', async () => {
-    expect((await post('name', an)).status).toBe(200)
-    expect((await post('name', an)).status).toBe(200)
-    expect((await post('name', { ...an, name: 'an', token: 'x'.repeat(32) })).status).toBe(409)
+    expect((await post(an)).status).toBe(200)
+    expect((await post(an)).status).toBe(200)
+    expect((await post({ ...an, name: 'an', token: 'x'.repeat(32) })).status).toBe(409)
   })
 
   it('từ chối tên, bài, điểm sai và body hỏng', async () => {
-    expect((await post('name', { ...an, name: 'a' })).status).toBe(400)
-    expect((await post('name', { ...an, name: '<script>' })).status).toBe(400)
-    expect((await post('name', { ...an, token: 'ngắn' })).status).toBe(400)
-    expect((await post('scores', { ...an, task: 'Grid/../x', score: 1 })).status).toBe(400)
-    expect((await post('scores', { ...an, task: 'gridshot', score: -1 })).status).toBe(400)
-    expect((await post('scores', { ...an, task: 'gridshot', score: '9' })).status).toBe(400)
-    expect((await post('scores', '{')).status).toBe(400)
-    expect((await post('scores', 'x'.repeat(5000))).status).toBe(400)
+    expect((await post({ ...an, name: 'a' })).status).toBe(400)
+    expect((await post({ ...an, name: '<script>' })).status).toBe(400)
+    expect((await post({ ...an, token: 'ngắn' })).status).toBe(400)
+    expect((await post({ ...an, task: 'Grid/../x', score: 1 })).status).toBe(400)
+    expect((await post({ ...an, task: 'gridshot', score: -1 })).status).toBe(400)
+    expect((await post({ ...an, task: 'gridshot', score: '9' })).status).toBe(400)
+    expect((await post('{')).status).toBe(400)
+    expect((await post('x'.repeat(5000))).status).toBe(400)
     expect((await fetch(`${base}/`)).status).toBe(404)
   })
 
   it('chỉ giữ kỷ lục cao nhất mỗi tên và xếp hạng giảm dần', async () => {
-    await post('scores', { ...an, task: 'gridshot', score: 50000 })
-    await post('scores', { ...an, task: 'gridshot', score: 40000 })
-    const res = await post('scores', { ...binh, task: 'gridshot', score: 60000 })
+    await post({ ...an, task: 'gridshot', score: 50000 })
+    await post({ ...an, task: 'gridshot', score: 40000 })
+    const res = await post({ ...binh, task: 'gridshot', score: 60000 })
     const b = await res.json()
     expect(b.top.map((e: { name: string; score: number }) => [e.name, e.score])).toEqual([['Bình', 60000], ['An', 50000]])
     expect(b.me).toMatchObject({ name: 'Bình', rank: 1 })
     expect(b.total).toBe(2)
-    expect((await post('scores', { ...an, token: binh.token, task: 'gridshot', score: 1e6 })).status).toBe(409)
+    expect((await post({ ...an, token: binh.token, task: 'gridshot', score: 1e6 })).status).toBe(409)
   })
 
   it('đọc bảng theo tên và còn dữ liệu sau khi khởi động lại', async () => {
     await stop()
     await start()
-    const b = await (await fetch(`${base}/api/scores?task=gridshot&name=an`)).json()
+    const b = await (await fetch(`${base}/api/ranking?task=gridshot&name=an`)).json()
     expect(b.me).toMatchObject({ name: 'An', score: 50000, rank: 2 })
-    expect((await fetch(`${base}/api/scores?task=khac`)).status).toBe(200)
+    expect((await fetch(`${base}/api/ranking?task=khac`)).status).toBe(200)
   })
 })

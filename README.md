@@ -15,19 +15,18 @@ Dùng **Chrome hoặc Edge** để có chuyển động chuột thô (raw input)
 
 Đang sửa code thì chạy `npm run dev` rồi mở địa chỉ Vite in ra (chạy thêm `npm run server` nếu cần bảng online).
 
-### Bảng xếp hạng online
+### Web và bảng xếp hạng online
 
-```bash
-npm start
-```
+Web chạy trên Vercel (https://aimxnxx.vercel.app), tự deploy mỗi khi `main` trên GitHub thay đổi.
+Bảng online là hàm Vercel `api/ranking.ts`, lưu vào **Upstash Redis**: vào Vercel → project →
+**Storage** → thêm Upstash Redis và nối với project (Vercel tự đặt `KV_REST_API_URL`, `KV_REST_API_TOKEN`),
+rồi Redeploy. Chưa nối thì app vẫn chạy, chỉ báo không kết nối được bảng online.
 
-Build rồi chạy máy chủ (Node 24, không cần cài thêm gì) ở `http://localhost:3000` (đổi bằng biến `PORT`).
-Mọi người mở địa chỉ đó, nhập tên, và kỷ lục từng bài dựng sẵn được gửi lên bảng chung. Dữ liệu nằm
-trong `data/scores.json` (đổi bằng biến `DATA`). Mở `dist/index.html` trực tiếp thì vẫn chơi được, chỉ là
-không có bảng online.
+Chạy ở máy không cần Vercel: `npm start` build rồi mở `http://localhost:3000` (`server.ts`, Node 24),
+lưu bảng vào `data/scores.json` (đổi bằng `PORT`, `DATA`). Mở `dist/index.html` trực tiếp thì không có bảng online.
 
 Tên là của trình duyệt đặt nó trước (giữ bằng một mã bí mật trong localStorage, có trong file sao lưu).
-Máy chủ không chống gian lận và không giới hạn tần suất gọi: mở ra internet thì đặt sau reverse proxy có rate limit.
+Chưa chống gian lận và chưa giới hạn tần suất gọi.
 
 ## Có gì
 
@@ -68,7 +67,7 @@ Dữ liệu nằm trong trình duyệt (localStorage). Vào **Thống kê → Xu
 | `src/stats.ts` | Hạng, hồ sơ kỹ năng, chuỗi ngày, lời khuyên, tìm sens |
 | `src/sens.ts` | Độ nhạy, cm/360, FOV |
 | `src/store.ts` | Cài đặt và lịch sử trong localStorage |
-| `src/online.ts`, `server.ts` | Bảng xếp hạng online: phía trình duyệt và máy chủ |
+| `src/online.ts`, `api/ranking.ts`, `server.ts` | Bảng xếp hạng online: trình duyệt, hàm Vercel + Redis, máy chủ chạy ở máy |
 | `src/view.ts`, `src/play.ts` | Vẽ 3D, khoá chuột, vòng lặp chơi, HUD, tâm ngắm |
 | `src/ui.ts`, `src/charts.ts` | Các màn hình menu và biểu đồ |
 

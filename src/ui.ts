@@ -671,7 +671,7 @@ function namePage() {
 
 function onlineHTML(b: Board | 'taken' | null, t: Task, me: string): string {
   if (b === 'taken') return `<p class="down">Tên "${esc(me)}" đã có người khác dùng trên máy chủ. <a href="#name">Đổi tên</a> để lên bảng.</p>`
-  if (!b) return '<p class="muted">Không kết nối được máy chủ xếp hạng. Bảng online chỉ có khi mở app qua máy chủ (<code>npm start</code>), không có khi mở file trực tiếp.</p>'
+  if (!b) return '<p class="muted">Không kết nối được máy chủ xếp hạng. Bảng online cần mạng; mở file trực tiếp thì không có.</p>'
   if (!b.total) return '<p class="muted">Chưa ai có điểm bài này. Chơi một lượt để đứng đầu!</p>'
   const T = ranksFor(t.params)
   const row = (e: Board['top'][number], i: number) =>
