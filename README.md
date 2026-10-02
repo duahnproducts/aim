@@ -15,6 +15,16 @@ Dùng **Chrome hoặc Edge** để có chuyển động chuột thô (raw input)
 
 Đang sửa code thì chạy `npm run dev` rồi mở địa chỉ Vite in ra.
 
+## Đưa lên mạng
+
+`.github/workflows/deploy.yml` tự chạy test, build rồi đăng lên **GitHub Pages** mỗi lần push
+lên `main`. Lần đầu: tạo repo công khai trên GitHub, push code lên, vào
+**Settings → Pages → Source** chọn **GitHub Actions**. Trang sẽ ở
+`https://<tên-tài-khoản>.github.io/<tên-repo>/`.
+
+Bản build chỉ là một file tĩnh nên host nào cũng được (Netlify, Cloudflare Pages…): đưa `dist/`
+lên là xong. Dữ liệu người chơi vẫn nằm trong trình duyệt của từng người, không cần server.
+
 ## Có gì
 
 - **25 bài**: Gridshot, Sixshot, Spidershot, Microshot, Headshot Line, Sniper, 360 Flick,

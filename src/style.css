@@ -306,6 +306,12 @@ select:focus-visible {
 
 /* ---- trang chủ ---- */
 
+.notice {
+  border-color: var(--gold);
+  color: var(--gold);
+  margin: 0 0 14px;
+}
+
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
