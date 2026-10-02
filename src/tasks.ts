@@ -111,8 +111,8 @@ export const BUILTIN: Task[] = [
     'Mục tiêu xanh là địch, mục tiêu đỏ là đồng đội. Bắn nhầm bị trừ điểm. Luyện nhìn trước khi bóp cò.',
     { count: 3, decoys: 0.4, lifetime: 1500, spreadX: 25, spreadY: 12, radius: 0.42, refTime: 700 }),
   t('flash-dodge', 'Flash Dodge', { perception: 1, speed: 0.5 },
-    'Một quả flash xuất hiện trước mặt: quay lưng lại (hơn 90°) trước khi nó nổ. Kiểu luyện né flash của OKIAIMX.',
-    { targetLimit: 25, duration: 0, weapon: 'dodge', spawnDelay: 900, lifetime: 900, adaptive: 'time', spreadX: 40, spreadY: 15, radius: 0.25, distance: 8, refTime: 500 }),
+    'Một quả flash xuất hiện trước mặt: quay lưng lại (hơn 90°) trước khi nó nổ.',
+    { targetLimit: 25, duration: 0, weapon: 'dodge', spawnDelay: 900, lifetime: 700, adaptive: 'time', spreadX: 40, spreadY: 15, radius: 0.25, distance: 8, refTime: 500 }),
   // --- Ẩn: dùng cho công cụ tìm độ nhạy ------------------------------------------
   t('finder-flick', 'Tìm sens · Flick', { flick: 1 }, 'Phần flick của bài tìm độ nhạy.',
     { duration: 20, spawn: 'spider', spreadX: 30, spreadY: 15, minGap: 10, radius: 0.4, refTime: 700 }, true),
