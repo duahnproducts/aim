@@ -4,6 +4,7 @@ import { gunshot, sfx } from './audio'
 import { bars, calendar, gauge, heat, line, radar, scatter } from './charts'
 import { DEFAULT_PARAMS, mean, type RunResult, type Shot, type TaskParams } from './game'
 import { drawCrosshair, escapeHtml as esc, play, stop } from './play'
+import { NAME, board, claimName, cleanName, newToken, submit, type Board, type Player } from './online'
 import { FOV_PRESETS, GAMES, cmPer360, convert360, gameById, hFov, vFov } from './sens'
 import {
   RANKS,
@@ -33,12 +34,14 @@ import {
   exportAll,
   importAll,
   loadCustom,
+  loadPlayer,
   loadPlaylists,
   loadReact,
   loadRuns,
   loadSettings,
   resetAll,
   saveCustom,
+  savePlayer,
   savePlaylists,
   saveSettings,
   type Settings,
@@ -85,6 +88,8 @@ function go(hash: string) {
 const allTasks = (): Task[] => [...BUILTIN, ...loadCustom()]
 const visibleTasks = () => allTasks().filter((t) => !t.hidden)
 const findTask = (id: string) => allTasks().find((t) => t.id === id)
+// Bài tự tạo có id riêng mỗi máy và thông số tuỳ ý, nên chỉ bài dựng sẵn mới lên bảng online.
+const onlineTask = (t: Task) => !t.custom && !t.hidden
 const primary = (t: Task) => (Object.keys(t.skills)[0] ?? 'flick') as Skill
 const cm360 = () => cmPer360(gameById(settings.game), settings.sens, settings.dpi) / settings.mouseScale
 
@@ -123,7 +128,8 @@ function route() {
   app.hidden = false
   const [page, arg = ''] = location.hash.slice(1).split('/')
   const id = decodeURIComponent(arg)
-  if (page === 'task') taskPage(id)
+  if (page === 'name' || !loadPlayer()) namePage()
+  else if (page === 'task') taskPage(id)
   else if (page === 'result') resultPage()
   else if (page === 'playlists') playlistsPage()
   else if (page === 'playlist') playlistEdit(id)
@@ -167,6 +173,8 @@ export function recordRun(task: Task, r: RunResult, shots: Shot[]): void {
     prevAvg: prev.length ? mean(prev.slice(-5).map((x) => x.score)) : null,
   }
   addRun(r)
+  const p = loadPlayer()
+  if (p && onlineTask(task)) void submit(p, task.id, Math.max(r.score, last.prevBest ?? 0))
   if (run) {
     run.results.push(r)
     run.i++
@@ -625,7 +633,7 @@ function statsPage() {
     statsPage()
   })
   $('[data-reset]').addEventListener('click', () => {
-    if (!confirm('Xoá toàn bộ lịch sử, bài tự tạo, lộ trình và cài đặt? Không hoàn tác được.')) return
+    if (!confirm('Xoá toàn bộ lịch sử, bài tự tạo, lộ trình và cài đặt (giữ lại tên người chơi)? Không hoàn tác được.')) return
     resetAll()
     settings = loadSettings()
     statsPage()
@@ -635,25 +643,71 @@ function statsPage() {
 // ---------------------------------------------------------------------------
 // Xếp hạng
 
+function namePage() {
+  const p = loadPlayer()
+  shell(
+    '',
+    `<div class="card name-card"><h1>${p ? 'Đổi tên' : 'Chào bạn!'}</h1>
+      <p class="muted">Tên này hiện trên bảng xếp hạng online. 2–20 ký tự: chữ, số, dấu cách, _ . -</p>
+      <form id="name-form" class="row"><input id="player-name" maxlength="20" required autocomplete="nickname" aria-label="Tên người chơi" value="${esc(p?.name ?? '')}">
+        <button>${p ? 'Lưu' : 'Bắt đầu'}</button></form>
+      <p id="name-err" class="down" role="alert"></p>
+      ${p ? '<a class="btn ghost" href="#ranking">Huỷ</a>' : ''}</div>`,
+  )
+  $('#player-name').focus()
+  $('#name-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const err = $('#name-err')
+    const name = cleanName($<HTMLInputElement>('#player-name').value)
+    if (!NAME.test(name)) return (err.textContent = 'Tên cần 2–20 ký tự: chữ, số, dấu cách, _ . -')
+    const player: Player = { name, token: p?.token ?? newToken() }
+    // Không tới được máy chủ thì vẫn giữ tên; lần gửi điểm sau sẽ nhận tên trên máy chủ.
+    if ((await claimName(player)) === 'taken') return (err.textContent = `Tên "${name}" đã có người dùng. Chọn tên khác nhé.`)
+    savePlayer(player)
+    if (location.hash.startsWith('#name')) go('#ranking')
+    else route()
+  })
+}
+
+function onlineHTML(b: Board | 'taken' | null, t: Task, me: string): string {
+  if (b === 'taken') return `<p class="down">Tên "${esc(me)}" đã có người khác dùng trên máy chủ. <a href="#name">Đổi tên</a> để lên bảng.</p>`
+  if (!b) return '<p class="muted">Không kết nối được máy chủ xếp hạng. Bảng online chỉ có khi mở app qua máy chủ (<code>npm start</code>), không có khi mở file trực tiếp.</p>'
+  if (!b.total) return '<p class="muted">Chưa ai có điểm bài này. Chơi một lượt để đứng đầu!</p>'
+  const T = ranksFor(t.params)
+  const row = (e: Board['top'][number], i: number) =>
+    `<tr${e.name === b.me?.name ? ' class="hl"' : ''}><td>${i}</td><td>${esc(e.name)}</td><td>${fmt.format(e.score)}</td>
+      <td>${rankBadge(rating(e.score, T))}</td><td>${new Date(e.date).toLocaleDateString('vi-VN')}</td></tr>`
+  const outside = b.me && b.me.rank > b.top.length
+  return `<p class="kv">${b.me ? `Bạn đứng <b>#${b.me.rank}</b> / ${b.total} người chơi.` : `${b.total} người chơi. Bạn chưa có điểm bài này.`}</p>
+    <table><thead><tr><th>#</th><th>Tên</th><th>Điểm</th><th>Hạng</th><th>Ngày</th></tr></thead><tbody>${b.top.map((e, i) => row(e, i + 1)).join('')}${
+      outside ? `<tr><td colspan="5" class="muted">…</td></tr>${row(b.me!, b.me!.rank)}` : ''
+    }</tbody></table>`
+}
+
 function rankingPage(id: string) {
   const runs = loadRuns()
   const tasks = visibleTasks()
   const t = findTask(id) ?? tasks.find((x) => x.id === runs.at(-1)?.task) ?? tasks[0]
-  const board = leaderboard(runs, t)
-  const top = board.findIndex((e) => e.run)
-  const beaten = top < 0 ? 0 : board.slice(top).filter((e) => !e.run).length
+  const bots = leaderboard(runs, t)
+  const top = bots.findIndex((e) => e.run)
+  const beaten = top < 0 ? 0 : bots.slice(top).filter((e) => !e.run).length
+  const player = loadPlayer()!
   shell(
     'ranking',
     `<h1>Bảng xếp hạng</h1>
+    <p class="muted">Bạn chơi với tên <b>${esc(player.name)}</b> · <a href="#name">Đổi tên</a></p>
     <div class="row"><select id="rk-task" aria-label="Chọn bài">${tasks
       .map((x) => `<option value="${esc(x.id)}"${x.id === t.id ? ' selected' : ''}>${esc(x.name)}</option>`)
       .join('')}</select><a class="btn ghost" href="#task/${esc(t.id)}">Chi tiết bài</a><button data-play="${esc(t.id)}">Chơi</button></div>
-    <div class="card"><p class="kv">${
+    <div class="card"><h2>Online</h2><div id="online">${
+      onlineTask(t) ? '<p class="muted">Đang tải…</p>' : '<p class="muted">Bài tự tạo không có bảng online.</p>'
+    }</div></div>
+    <div class="card"><h2>So với người chơi ảo</h2><p class="kv">${
       top < 0
         ? 'Bạn chưa chơi bài này. Chơi một lượt để lên bảng.'
         : `Kỷ lục của bạn đứng <b>#${top + 1}</b>, trên <b>${beaten}/${RANKS.length}</b> người chơi ảo.`
     }</p>
-      <table><thead><tr><th>#</th><th>Người chơi</th><th>Điểm</th><th>Hạng</th><th>Lúc</th></tr></thead><tbody>${board
+      <table><thead><tr><th>#</th><th>Người chơi</th><th>Điểm</th><th>Hạng</th><th>Lúc</th></tr></thead><tbody>${bots
         .map(
           (e, i) =>
             `<tr${e.run ? ' class="hl"' : ''}><td>${i + 1}</td><td>${e.run ? 'Bạn' : `<span class="muted">Người chơi ảo · ${RANKS[e.rank]}</span>`}</td>
@@ -662,6 +716,14 @@ function rankingPage(id: string) {
         .join('')}</tbody></table>
       <p class="muted small">Gồm 10 lượt cao nhất của bạn và người chơi ảo ở mốc từng hạng (ước lượng, không phải điểm của người thật).</p></div>`,
   )
+  if (onlineTask(t)) {
+    // Gửi lại kỷ lục mỗi lần xem: điểm chơi lúc mất mạng cũng lên bảng.
+    const b = best(runs, t.id)
+    const box = $('#online')
+    void (b == null ? board(t.id, player.name) : submit(player, t.id, b)).then((res) => {
+      if (box.isConnected) box.innerHTML = onlineHTML(res, t, player.name) // đã sang trang khác thì thôi
+    })
+  }
   $<HTMLSelectElement>('#rk-task').addEventListener('change', (e) => go(`#ranking/${encodeURIComponent((e.target as HTMLSelectElement).value)}`))
 }
 

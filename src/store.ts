@@ -1,6 +1,7 @@
 // Cài đặt và dữ liệu người chơi, lưu trong localStorage của trình duyệt.
 // Mọi lần đọc/ghi đều bọc try/catch: chế độ ẩn danh hoặc bộ nhớ đầy không được làm sập app.
 import type { RunResult } from './game'
+import { NAME, type Player } from './online'
 import type { FovType } from './sens'
 import { cleanParams, type Playlist, type Task } from './tasks'
 
@@ -111,6 +112,7 @@ const KEYS = {
   playlists: 'tn.playlists',
   react: 'tn.react',
   cal: 'tn.cal',
+  player: 'tn.player',
 } as const
 
 function load<T>(key: string, fallback: T): T {
@@ -214,7 +216,14 @@ export const addReact = (times: number[]) => save(KEYS.react, [...loadReact(), {
 export const loadCal = (): Record<string, number[]> => load(KEYS.cal, {})
 export const saveCal = (cal: Record<string, number[]>) => save(KEYS.cal, cal)
 
-const BACKUP_KEYS = ['settings', 'runs', 'custom', 'playlists', 'react'] as const
+/** Tên dùng cho bảng xếp hạng online, kèm token chứng minh tên này là của trình duyệt này. */
+export function loadPlayer(): Player | null {
+  const p = load<Partial<Player> | null>(KEYS.player, null)
+  return p && typeof p.name === 'string' && NAME.test(p.name) && typeof p.token === 'string' ? { name: p.name, token: p.token } : null
+}
+export const savePlayer = (p: Player) => save(KEYS.player, p)
+
+const BACKUP_KEYS = ['settings', 'runs', 'custom', 'playlists', 'react', 'player'] as const
 
 export function exportAll(): string {
   const data: Record<string, unknown> = { app: 'tam-ngam', version: 1 }
@@ -235,9 +244,10 @@ export function importAll(json: string): boolean {
   return true
 }
 
+/** Xoá mọi thứ trừ tên người chơi: mất token thì không lấy lại được tên trên bảng online. */
 export function resetAll() {
   try {
-    for (const k of Object.values(KEYS)) localStorage.removeItem(k)
+    for (const k of Object.values(KEYS)) if (k !== KEYS.player) localStorage.removeItem(k)
   } catch {
     // bỏ qua
   }

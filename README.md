@@ -13,7 +13,21 @@ npm run build
 Ra **một file duy nhất** `dist/index.html`. Copy đi đâu cũng được, double-click là chơi.
 Dùng **Chrome hoặc Edge** để có chuyển động chuột thô (raw input) và khoá chuột ổn định.
 
-Đang sửa code thì chạy `npm run dev` rồi mở địa chỉ Vite in ra.
+Đang sửa code thì chạy `npm run dev` rồi mở địa chỉ Vite in ra (chạy thêm `npm run server` nếu cần bảng online).
+
+### Bảng xếp hạng online
+
+```bash
+npm start
+```
+
+Build rồi chạy máy chủ (Node 24, không cần cài thêm gì) ở `http://localhost:3000` (đổi bằng biến `PORT`).
+Mọi người mở địa chỉ đó, nhập tên, và kỷ lục từng bài dựng sẵn được gửi lên bảng chung. Dữ liệu nằm
+trong `data/scores.json` (đổi bằng biến `DATA`). Mở `dist/index.html` trực tiếp thì vẫn chơi được, chỉ là
+không có bảng online.
+
+Tên là của trình duyệt đặt nó trước (giữ bằng một mã bí mật trong localStorage, có trong file sao lưu).
+Máy chủ không chống gian lận và không giới hạn tần suất gọi: mở ra internet thì đặt sau reverse proxy có rate limit.
 
 ## Có gì
 
@@ -23,7 +37,8 @@ Dùng **Chrome hoặc Edge** để có chuyển động chuột thô (raw input)
   (kèm bản Precision và Adaptive tự chỉnh độ khó).
 - **Hạng 8 bậc** cho từng bài (Sắt → Thách Đấu) và **hồ sơ 6 kỹ năng**: flick, tracking,
   chuyển mục tiêu, tốc độ, chính xác, phản xạ.
-- **Bảng xếp hạng** mỗi bài: 10 lượt cao nhất của bạn đứng xen giữa người chơi ảo ở mốc từng hạng.
+- **Bảng xếp hạng** mỗi bài: online theo tên người chơi, và 10 lượt cao nhất của bạn đứng xen giữa
+  người chơi ảo ở mốc từng hạng.
 - **Phân tích sau mỗi lượt**: phân bố phát bắn, vượt quá / chưa tới, tốc độ theo vùng màn hình,
   phong độ theo thời gian, lời khuyên.
 - **Lộ trình** (playlist) dựng sẵn và tự tạo, có bài đánh giá kỹ năng.
@@ -53,7 +68,8 @@ Dữ liệu nằm trong trình duyệt (localStorage). Vào **Thống kê → Xu
 | `src/stats.ts` | Hạng, hồ sơ kỹ năng, chuỗi ngày, lời khuyên, tìm sens |
 | `src/sens.ts` | Độ nhạy, cm/360, FOV |
 | `src/store.ts` | Cài đặt và lịch sử trong localStorage |
+| `src/online.ts`, `server.ts` | Bảng xếp hạng online: phía trình duyệt và máy chủ |
 | `src/view.ts`, `src/play.ts` | Vẽ 3D, khoá chuột, vòng lặp chơi, HUD, tâm ngắm |
 | `src/ui.ts`, `src/charts.ts` | Các màn hình menu và biểu đồ |
 
-`npm test` chạy toàn bộ test (luật chơi, bot, hạng, lưu trữ, giao diện).
+`npm test` chạy toàn bộ test (luật chơi, bot, hạng, lưu trữ, giao diện, máy chủ).

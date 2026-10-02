@@ -32,6 +32,8 @@ function singleFile(): Plugin {
 export default defineConfig({
   base: './',
   plugins: [singleFile()],
+  // `npm run dev` / `preview` chuyển /api sang máy chủ xếp hạng (npm run server).
+  server: { proxy: { '/api': 'http://localhost:3000' } },
   build: { modulePreload: false, cssCodeSplit: false, chunkSizeWarningLimit: 2000 },
-  test: { include: ['src/**/*.test.ts'] },
+  test: { include: ['src/**/*.test.ts', 'server.test.ts'] },
 })

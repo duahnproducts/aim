@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Game } from './game'
-import { loadCustom, loadPlaylists, loadRuns, loadSettings } from './store'
+import { loadCustom, loadPlayer, loadPlaylists, loadRuns, loadSettings } from './store'
 import { BUILTIN } from './tasks'
 import { recordRun, start } from './ui'
 
@@ -24,8 +24,17 @@ beforeAll(() => {
   start(app)
 })
 
+const me = { name: 'Tester', token: 't'.repeat(32) }
+const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }))
+// Mặc định không có máy chủ; test nào cần thì tự đặt câu trả lời.
+const fetchMock = vi.fn((..._: unknown[]): Promise<Response> => Promise.reject(new TypeError('offline')))
+vi.stubGlobal('fetch', fetchMock)
+
 beforeEach(async () => {
   localStorage.clear()
+  localStorage.setItem('tn.player', JSON.stringify(me))
+  fetchMock.mockClear()
+  fetchMock.mockImplementation(() => Promise.reject(new TypeError('offline')))
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   await goto('#home')
 })
@@ -147,7 +156,59 @@ describe('lộ trình', () => {
   })
 })
 
+describe('tên người chơi', () => {
+  it('chưa có tên thì mọi trang đều hỏi tên; tên đã có người dùng thì báo lỗi', async () => {
+    localStorage.removeItem('tn.player')
+    await goto('#stats')
+    expect(app.querySelector('#player-name')).not.toBeNull()
+    fetchMock.mockImplementationOnce(() => json({}, 409))
+    input('#player-name', '  Minh   Anh ')
+    app.querySelector<HTMLFormElement>('#name-form')!.requestSubmit()
+    await tick()
+    expect(app.querySelector('#name-err')!.textContent).toContain('Minh Anh')
+    expect(loadPlayer()).toBeNull()
+    fetchMock.mockImplementationOnce(() => json({ name: 'Minh Anh' }))
+    app.querySelector<HTMLFormElement>('#name-form')!.requestSubmit()
+    await tick()
+    expect(loadPlayer()!.name).toBe('Minh Anh')
+    expect(app.querySelector('.radar')).not.toBeNull() // về đúng trang đang định mở
+  })
+
+  it('tên sai luật thì không gửi đi', async () => {
+    await goto('#name')
+    input('#player-name', 'x')
+    app.querySelector<HTMLFormElement>('#name-form')!.requestSubmit()
+    await tick()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(loadPlayer()!.name).toBe('Tester')
+  })
+})
+
 describe('xếp hạng', () => {
+  it('gửi kỷ lục lên máy chủ và hiện bảng online, tô dòng của mình', async () => {
+    const task = BUILTIN.find((t) => t.id === 'gridshot')!
+    recordRun(task, { ...new Game(task.params, 1).result(task.id, 60), score: 12345 }, [])
+    expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)).toMatchObject({ ...me, task: 'gridshot', score: 12345 })
+    const top = Array.from({ length: 50 }, (_, i) => ({ name: `P${i}`, score: 99999 - i, date: 0 }))
+    fetchMock.mockImplementation(() => json({ top, total: 80, me: { name: 'Tester', score: 12345, date: 0, rank: 77 } }))
+    await goto('#ranking/gridshot')
+    await tick()
+    const online = app.querySelector('#online')!
+    expect(online.textContent).toContain('#77 / 80')
+    expect(online.querySelectorAll('tbody tr')).toHaveLength(52)
+    expect(online.querySelector('tr.hl')!.textContent).toContain('Tester')
+  })
+
+  it('không có máy chủ thì báo, bài tự tạo thì không gửi', async () => {
+    await goto('#ranking/gridshot')
+    await tick()
+    expect(app.querySelector('#online')!.textContent).toContain('Không kết nối được')
+    const task = { ...BUILTIN[0], id: 'c-x', custom: true }
+    fetchMock.mockClear()
+    recordRun(task, new Game(task.params, 1).result(task.id, 60), [])
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('hiện lượt của bạn trên bảng cùng người chơi ảo, đổi bài bằng ô chọn', async () => {
     await goto('#ranking/gridshot')
     expect(app.querySelectorAll('tbody tr')).toHaveLength(8)

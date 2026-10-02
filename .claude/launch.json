@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview", "--", "--port", "5181", "--strictPort"],
       "port": 5181
+    },
+    {
+      "name": "tam-ngam-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.ts"],
+      "port": 3000
     }
   ]
 }
