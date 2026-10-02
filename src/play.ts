@@ -214,8 +214,13 @@ function lock() {
   try {
     const p = st?.rawInput ? req({ unadjustedMovement: true }) : req()
     if (p && typeof p.catch === 'function')
-      p.catch((err: DOMException) => {
-        if (err?.name === 'NotSupportedError') return req()
+      p.catch(async (err: DOMException) => {
+        try {
+          // Máy không hỗ trợ đọc thô thì khoá chuột kiểu thường.
+          if (err?.name === 'NotSupportedError') return await req()
+        } catch {
+          // rơi xuống thông báo bên dưới
+        }
         overlay('Trình duyệt chưa cho khoá chuột. Đợi một giây rồi bấm lại.')
       })
   } catch {
@@ -242,8 +247,8 @@ function restart() {
   s.yaw = 0
   s.pitch = 0
   view?.clear()
-  s.state = locked() ? 'countdown' : 'ready'
-  if (s.state === 'ready') overlay()
+  s.state = 'ready'
+  overlay()
 }
 
 function step(s: Session, now: number) {

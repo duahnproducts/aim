@@ -740,24 +740,24 @@ interface Field {
 function fieldsHTML(fields: Field[], v: Record<string, unknown>): string {
   return fields
     .map((f) => {
-      const val = v[f.key]
+      const val = esc(String(v[f.key]))
       const hint = f.hint ? `<small>${f.hint}</small>` : ''
       const attrs = `data-key="${f.key}" id="f-${f.key}"`
       const lim = `min="${f.min ?? ''}" max="${f.max ?? ''}" step="${f.step ?? 'any'}"`
       if (f.type === 'check')
-        return `<label class="field check"><input type="checkbox" ${attrs}${val ? ' checked' : ''}><span>${f.label}</span>${hint}</label>`
+        return `<label class="field check"><input type="checkbox" ${attrs}${v[f.key] ? ' checked' : ''}><span>${f.label}</span>${hint}</label>`
       const input =
         f.type === 'num'
           ? `<input type="number" ${attrs} value="${val}" ${lim}>`
           : f.type === 'range'
             ? `<div class="range"><input type="range" ${attrs} value="${val}" ${lim}><output>${val}</output></div>`
             : f.type === 'select'
-              ? `<select ${attrs}>${f.options!.map(([o, l]) => `<option value="${o}"${o === String(val) ? ' selected' : ''}>${l}</option>`).join('')}</select>`
+              ? `<select ${attrs}>${f.options!.map(([o, l]) => `<option value="${o}"${o === String(v[f.key]) ? ' selected' : ''}>${l}</option>`).join('')}</select>`
               : f.type === 'color'
                 ? `<input type="color" ${attrs} value="${val}">`
                 : f.type === 'area'
-                  ? `<textarea ${attrs} rows="3" maxlength="400">${esc(String(val))}</textarea>`
-                  : `<input type="text" ${attrs} value="${esc(String(val))}" maxlength="60">`
+                  ? `<textarea ${attrs} rows="3" maxlength="400">${val}</textarea>`
+                  : `<input type="text" ${attrs} value="${val}" maxlength="60">`
       return `<label class="field" for="f-${f.key}"><span>${f.label}</span>${input}${hint}</label>`
     })
     .join('')

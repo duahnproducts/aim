@@ -80,3 +80,22 @@ describe('bài tự tạo', () => {
     expect(list[0].custom).toBe(true)
   })
 })
+
+describe('dữ liệu nhập từ ngoài', () => {
+  it('cài đặt có giá trị lạ thì về mặc định', () => {
+    localStorage.setItem('tn.settings', JSON.stringify({ fovType: 'ngang', chColor: '" onmouseover="x', hitSound: 'boom', sens: 0.3 }))
+    const s = loadSettings()
+    expect(s.fovType).toBe(DEFAULT_SETTINGS.fovType)
+    expect(s.chColor).toBe(DEFAULT_SETTINGS.chColor)
+    expect(s.hitSound).toBe(DEFAULT_SETTINGS.hitSound)
+    expect(s.sens).toBe(0.3)
+  })
+
+  it('lượt chơi có trường sai kiểu bị ép về số', () => {
+    localStorage.setItem('tn.runs', JSON.stringify([{ task: 'gridshot', score: 10, ttk: '<img src=x>', regions: ['a', 5] }]))
+    const [r] = loadRuns()
+    expect(r.ttk).toBe(0)
+    expect(r.regions).toEqual([null, 5, null, null, null, null, null, null, null])
+    expect(r.gain).toBeNull()
+  })
+})

@@ -141,12 +141,49 @@ export function merge<T extends object>(defaults: T, saved: unknown): T {
   return out
 }
 
-export const loadSettings = (): Settings => merge(DEFAULT_SETTINGS, load(KEYS.settings, {}))
+// Các trường chỉ nhận một số giá trị; giá trị lạ (ví dụ từ file sao lưu bị sửa) thì lấy mặc định.
+const SFX: Sfx[] = ['none', 'tick', 'pop', 'ding', 'thud', 'click']
+const CHOICES: Partial<Record<keyof Settings, readonly string[]>> = {
+  fovType: ['v', 'h43', 'h169'],
+  chStyle: ['cross', 't', 'dot', 'circle'],
+  hitSound: SFX,
+  killSound: SFX,
+  missSound: SFX,
+  shootSound: ['none', 'click', 'gun'],
+  theme: THEMES.map((t) => t.id),
+}
+const COLOR = /^#[0-9a-f]{6}$/i
+
+export function loadSettings(): Settings {
+  const s = merge(DEFAULT_SETTINGS, load(KEYS.settings, {}))
+  for (const k of Object.keys(s) as (keyof Settings)[]) {
+    const v = s[k]
+    const ok = CHOICES[k] ? CHOICES[k].includes(v as string) : typeof v !== 'string' || k === 'game' || COLOR.test(v)
+    if (!ok) (s as unknown as Record<string, unknown>)[k] = DEFAULT_SETTINGS[k]
+  }
+  return s
+}
 export const saveSettings = (s: Settings) => save(KEYS.settings, s)
+
+const RUN_NUMBERS = ['date', 'score', 'acc', 'kills', 'shots', 'hits', 'time', 'kps', 'ttk', 'rt', 'expired', 'decoys', 'cm360'] as const
+const numOr = <T>(v: unknown, fallback: T) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+
+/** Lượt chơi đọc từ bộ nhớ hoặc file sao lưu: ép đúng kiểu số trước khi đem ra hiển thị. */
+function cleanRun(r: Record<string, unknown>): RunResult {
+  const out = { task: String(r.task) } as Record<string, unknown>
+  for (const k of RUN_NUMBERS) out[k] = numOr(r[k], 0)
+  out.gain = numOr(r.gain, null)
+  out.err = numOr(r.err, null)
+  out.regions = Array.from({ length: 9 }, (_, i) => numOr(Array.isArray(r.regions) ? r.regions[i] : null, null))
+  out.timeline = Array.isArray(r.timeline) ? r.timeline.slice(0, 200).map((v) => numOr(v, 0)) : []
+  return out as unknown as RunResult
+}
 
 export const loadRuns = (): RunResult[] => {
   const runs = load<unknown>(KEYS.runs, [])
-  return Array.isArray(runs) ? runs.filter((r) => r && typeof r.task === 'string' && typeof r.score === 'number') : []
+  return Array.isArray(runs)
+    ? runs.filter((r) => r && typeof r.task === 'string' && typeof r.score === 'number').map(cleanRun)
+    : []
 }
 export function addRun(r: RunResult) {
   save(KEYS.runs, [...loadRuns(), r])
