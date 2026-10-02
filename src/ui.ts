@@ -235,9 +235,12 @@ function homePage() {
         t.name.toLowerCase().includes(query.trim().toLowerCase()),
     )
   const grid = () => shown().map((t) => card(t, runs)).join('') || '<p class="muted">Không có bài nào khớp.</p>'
+  // Màn cảm ứng không khoá chuột được: báo trước thay vì để bấm "Chơi" rồi không có gì xảy ra.
+  const touchOnly = window.matchMedia?.('(any-pointer: fine)').matches === false
   shell(
     'home',
-    `<section class="hero">
+    `${touchOnly ? '<p class="card notice">Tâm Ngắm cần chuột và bàn phím. Hãy mở trang này trên máy tính (Chrome hoặc Edge).</p>' : ''}
+    <section class="hero">
       <a class="card stat" href="#stats"><span class="muted">Hạng tổng</span>${
         ov == null ? '<b>Chưa xếp hạng</b><small>Chơi vài bài để có hạng</small>' : `${rankBadge(ov, true)}<small>${Math.round(ov)}/900 điểm kỹ năng</small>`
       }</a>
