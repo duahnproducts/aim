@@ -17,13 +17,13 @@ Dùng **Chrome hoặc Edge** để có chuyển động chuột thô (raw input)
 
 ## Đưa lên mạng
 
-`.github/workflows/deploy.yml` tự chạy test, build rồi đăng lên **GitHub Pages** mỗi lần push
-lên `main`. Lần đầu: tạo repo công khai trên GitHub, push code lên, vào
-**Settings → Pages → Source** chọn **GitHub Actions**. Trang sẽ ở
-`https://<tên-tài-khoản>.github.io/<tên-repo>/`.
+Chạy trên **Vercel**. `vercel.json` bắt Vercel chạy test trước khi build, test lỗi thì không deploy.
 
-Bản build chỉ là một file tĩnh nên host nào cũng được (Netlify, Cloudflare Pages…): đưa `dist/`
-lên là xong. Dữ liệu người chơi vẫn nằm trong trình duyệt của từng người, không cần server.
+- Deploy thẳng từ máy: `npx vercel --prod` (lần đầu sẽ hỏi đăng nhập và tên dự án).
+- Hoặc nối repo GitHub: vercel.com → Add New → Project → chọn repo. Từ đó mỗi lần push lên
+  `main` là tự deploy, nhánh khác có link xem thử riêng.
+
+Bản build chỉ là một file tĩnh, dữ liệu người chơi nằm trong trình duyệt của từng người, không cần server.
 
 ## Có gì
 
