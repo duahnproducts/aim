@@ -1,4 +1,4 @@
-// Các màn hình menu: thư viện bài, kết quả, lộ trình, thống kê, công cụ, tạo bài, cài đặt.
+// Các màn hình menu: thư viện bài, kết quả, lộ trình, thống kê, xếp hạng, công cụ, tạo bài, cài đặt.
 // Mỗi màn là một hàm dựng HTML rồi gắn sự kiện; điều hướng bằng #hash để nút Back hoạt động.
 import { gunshot, sfx } from './audio'
 import { bars, calendar, gauge, heat, line, radar, scatter } from './charts'
@@ -12,6 +12,7 @@ import {
   dailyGoal,
   dailyTask,
   dayKey,
+  leaderboard,
   overall,
   profile,
   rankColor,
@@ -100,6 +101,7 @@ const NAV: [string, string][] = [
   ['home', 'Bài tập'],
   ['playlists', 'Lộ trình'],
   ['stats', 'Thống kê'],
+  ['ranking', 'Xếp hạng'],
   ['tools', 'Công cụ'],
   ['create', 'Tạo bài'],
   ['settings', 'Cài đặt'],
@@ -127,6 +129,7 @@ function route() {
   else if (page === 'playlist') playlistEdit(id)
   else if (page === 'summary') summaryPage()
   else if (page === 'stats') statsPage()
+  else if (page === 'ranking') rankingPage(id)
   else if (page === 'tools') toolsPage()
   else if (page === 'create') createPage(id)
   else if (page === 'settings') settingsPage(id)
@@ -278,6 +281,7 @@ function taskPage(id: string) {
         <div class="tags">${Object.keys(t.skills).map((k) => `<span class="tag">${SKILLS[k as Skill] ?? esc(k)}</span>`).join('')}${t.custom ? '<span class="tag mine">Của tôi</span>' : ''}</div>
         <p>${esc(t.desc)}</p><p class="muted">${esc(summary(t.params))}</p></div>
       <div class="actions"><button class="big" data-play="${esc(t.id)}">▶ Chơi</button>
+        <a class="btn ghost" href="#ranking/${esc(t.id)}">Bảng xếp hạng</a>
         <a class="btn ghost" href="#create/${esc(t.id)}">${t.custom ? 'Sửa bài' : 'Nhân bản & tuỳ chỉnh'}</a>
         ${t.custom ? '<button class="ghost danger" data-del>Xoá bài</button>' : ''}</div>
     </div>
@@ -345,6 +349,7 @@ function resultPage() {
         ${run ? (next ? `<button class="big" data-next>Tiếp: ${esc(next.name)} (${run.i + 1}/${run.list.items.length})</button>` : '<button class="big" data-summary>Xem tổng kết</button>') : ''}
         <button class="${run ? 'ghost' : 'big'}" data-replay>Chơi lại (R)</button>
         <a class="btn ghost" href="#task/${esc(task.id)}">Chi tiết bài</a>
+        <a class="btn ghost" href="#ranking/${esc(task.id)}">Bảng xếp hạng</a>
         ${run ? '<button class="ghost" data-stoprun>Dừng lộ trình</button>' : ''}
       </div>
     </div>
@@ -625,6 +630,39 @@ function statsPage() {
     settings = loadSettings()
     statsPage()
   })
+}
+
+// ---------------------------------------------------------------------------
+// Xếp hạng
+
+function rankingPage(id: string) {
+  const runs = loadRuns()
+  const tasks = visibleTasks()
+  const t = findTask(id) ?? tasks.find((x) => x.id === runs.at(-1)?.task) ?? tasks[0]
+  const board = leaderboard(runs, t)
+  const top = board.findIndex((e) => e.run)
+  const beaten = top < 0 ? 0 : board.slice(top).filter((e) => !e.run).length
+  shell(
+    'ranking',
+    `<h1>Bảng xếp hạng</h1>
+    <div class="row"><select id="rk-task" aria-label="Chọn bài">${tasks
+      .map((x) => `<option value="${esc(x.id)}"${x.id === t.id ? ' selected' : ''}>${esc(x.name)}</option>`)
+      .join('')}</select><a class="btn ghost" href="#task/${esc(t.id)}">Chi tiết bài</a><button data-play="${esc(t.id)}">Chơi</button></div>
+    <div class="card"><p class="kv">${
+      top < 0
+        ? 'Bạn chưa chơi bài này. Chơi một lượt để lên bảng.'
+        : `Kỷ lục của bạn đứng <b>#${top + 1}</b>, trên <b>${beaten}/${RANKS.length}</b> người chơi ảo.`
+    }</p>
+      <table><thead><tr><th>#</th><th>Người chơi</th><th>Điểm</th><th>Hạng</th><th>Lúc</th></tr></thead><tbody>${board
+        .map(
+          (e, i) =>
+            `<tr${e.run ? ' class="hl"' : ''}><td>${i + 1}</td><td>${e.run ? 'Bạn' : `<span class="muted">Người chơi ảo · ${RANKS[e.rank]}</span>`}</td>
+            <td>${fmt.format(e.score)}</td><td>${rankBadge(100 * (e.rank + 1))}</td><td>${e.run ? when(e.run.date) : ''}</td></tr>`,
+        )
+        .join('')}</tbody></table>
+      <p class="muted small">Gồm 10 lượt cao nhất của bạn và người chơi ảo ở mốc từng hạng (ước lượng, không phải điểm của người thật).</p></div>`,
+  )
+  $<HTMLSelectElement>('#rk-task').addEventListener('change', (e) => go(`#ranking/${encodeURIComponent((e.target as HTMLSelectElement).value)}`))
 }
 
 // ---------------------------------------------------------------------------

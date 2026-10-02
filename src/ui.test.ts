@@ -147,6 +147,26 @@ describe('lộ trình', () => {
   })
 })
 
+describe('xếp hạng', () => {
+  it('hiện lượt của bạn trên bảng cùng người chơi ảo, đổi bài bằng ô chọn', async () => {
+    await goto('#ranking/gridshot')
+    expect(app.querySelectorAll('tbody tr')).toHaveLength(8)
+    expect(text()).toContain('Bạn chưa chơi bài này')
+    const task = BUILTIN.find((t) => t.id === 'gridshot')!
+    const g = new Game(task.params, 1)
+    recordRun(task, g.result(task.id, 60), [])
+    await goto('#ranking/gridshot')
+    expect(app.querySelectorAll('tbody tr')).toHaveLength(9)
+    expect(app.querySelector('tr.hl')!.textContent).toContain('Bạn')
+    expect(text()).toContain('trên 0/8 người chơi ảo')
+    const sel = app.querySelector<HTMLSelectElement>('#rk-task')!
+    sel.value = 'sixshot'
+    sel.dispatchEvent(new Event('change'))
+    await tick()
+    expect(location.hash).toBe('#ranking/sixshot')
+  })
+})
+
 describe('thống kê', () => {
   it('hiện hồ sơ kỹ năng và bảng theo bài sau khi có lượt chơi', async () => {
     const task = BUILTIN.find((t) => t.id === 'strafetrack')!
